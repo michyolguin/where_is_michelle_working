@@ -1,0 +1,15 @@
+[
+  {
+    "date": "2025-09-08",
+    "location": "Conference — Bern (Kursaal)",
+    "note": "Panel at 11:00; limited email",
+    "upNext": "13:30 — Train back to Geneva",
+    "badgeText": "OVERRIDE"
+  },
+  {
+    "date_range": { "start": "2025-09-18", "end": "2025-09-20" },
+    "location": "OOO — annual leave",
+    "note": "Email response may be delayed",
+    "badgeText": "OOO"
+  }
+]
