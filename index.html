@@ -4,114 +4,201 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Where is Michelle working today?</title>
-  <meta name="description" content="A tiny one-page status and schedule for Michelle." />
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.4/dist/tailwind.min.css" rel="stylesheet">
+  <meta name="description" content="Quick daily location + schedule for Michelle." />
+  <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .ping::before {content:""; position:absolute; inset:-6px; border-radius:9999px; border:2px solid rgba(59,130,246,.35); animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;}
-    @keyframes ping {75%, 100% {transform: scale(1.6); opacity: 0;}}
+    body { font-family: 'Ubuntu', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+    .card { border-radius: 1rem; box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+    .status-ping::before { content:""; position:absolute; inset:-6px; border-radius:9999px; border:2px solid rgba(255,255,255,.45); animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite; }
+    @keyframes ping { 75%,100% { transform:scale(1.6); opacity:0; } }
+    .table-fixed { table-layout: fixed; }
+    .td-wrap { word-wrap: break-word; }
+    /* Override sticker */
+    .sticker {
+      position: absolute; top: .75rem; right: .75rem;
+      transform: rotate(6deg);
+      padding: .35rem .6rem; border-radius: .5rem;
+      background: #fb7185; color: #fff; font-weight: 700; font-size: .75rem;
+      box-shadow: 0 4px 14px rgba(0,0,0,.15);
+      letter-spacing: .5px;
+    }
   </style>
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-900 antialiased">
-  <div class="mx-auto max-w-2xl p-6 sm:p-8">
-    <!-- Header -->
-    <header class="flex items-center justify-between gap-4">
-      <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight">Where is <span class="font-bold">Michelle</span> working today?</h1>
-      <div class="relative">
-        <span id="statusDot" class="inline-block h-3 w-3 rounded-full bg-blue-500 ping"></span>
-      </div>
-    </header>
+<body class="bg-white text-slate-900 antialiased">
+  <main class="mx-auto max-w-4xl p-6 sm:p-10 space-y-6">
 
-    <!-- Today / location card -->
-    <section class="mt-6 rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
-      <div class="p-5 sm:p-6">
-        <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-3">
-          <div>
-            <p id="todayText" class="text-sm text-slate-500">Today</p>
-            <h2 id="locationText" class="mt-1 text-xl sm:text-2xl font-semibold"></h2>
-            <p id="noteText" class="mt-1 text-slate-600"></p>
-          </div>
-          <div class="text-right">
-            <p id="tzText" class="text-xs text-slate-500"></p>
-          </div>
+    <!-- 1) Title + time -->
+    <section class="card bg-blue-600 text-white p-6 sm:p-7">
+      <div class="flex items-start justify-between gap-4">
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+          <span>📍</span> Where is Michelle working today?
+        </h1>
+        <span id="statusDot" class="relative inline-block h-3 w-3 rounded-full bg-emerald-400 status-ping"></span>
+      </div>
+      <p id="tinyDate" class="mt-2 text-sm/6 opacity-90"></p>
+    </section>
+
+    <!-- 2) Right now + Up next -->
+    <section class="relative card bg-red-600 text-white p-6 sm:p-7">
+      <div id="overrideSticker" class="hidden sticker">OVERRIDE</div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="md:col-span-2">
+          <h2 class="text-xl sm:text-2xl font-semibold">Right now</h2>
+          <p id="rightNow" class="mt-2 text-lg sm:text-xl font-bold"></p>
+          <p id="friendlyNote" class="mt-2 text-sm/6 opacity-90 hidden"></p>
+          <p id="daySummary" class="mt-3 text-xs/6 opacity-80"></p>
         </div>
-      </div>
-
-      <div id="ahcdBanner" class="hidden border-t border-slate-100 bg-amber-50">
-        <div class="p-4 text-sm text-amber-900">
-          <strong>Not at the Albert Hirschman Centre today.</strong>
-          <span class="block sm:inline"> If you need help, you can reach the rest of the AHCD staff at
-            <a class="underline" href="mailto:democracy.payments@graduateinstitute.ch">democracy.payments</a>,
-            <a class="underline" href="mailto:democracy.conferences@graduateinstitute.ch">democracy.conferences</a>,
-            or <a class="underline" href="mailto:democracy@graduateinstitute.ch">democracy</a>
-            <span class="sm:inline">@graduateinstitute.ch</span>.
-          </span>
+        <div class="md:col-span-1">
+          <h3 class="text-base font-semibold">Up next</h3>
+          <p id="upNext" class="mt-2 text-sm/6 font-medium"></p>
         </div>
       </div>
     </section>
 
-    <!-- Weekly Schedule -->
-    <section class="mt-6 rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
-      <div class="p-5 sm:p-6">
-        <h3 class="text-lg font-semibold">Weekly schedule</h3>
-        <ul class="mt-3 divide-y divide-slate-100 text-sm text-slate-700">
-          <li class="py-2"><strong>Monday:</strong> Albert Hirschman Centre on Democracy (AHCD)</li>
-          <li class="py-2"><strong>Tuesday:</strong> Albert Hirschman Centre on Democracy (AHCD)</li>
-          <li class="py-2"><strong>Wednesday morning:</strong> Communications Office<br><strong>Wednesday afternoon:</strong> AHCD</li>
-          <li class="py-2"><strong>Thursday:</strong> Communications Office</li>
-          <li class="py-2"><strong>Friday morning:</strong> AHCD<br><strong>Friday afternoon:</strong> Global Health Centre</li>
-        </ul>
-      </div>
+    <!-- 3) Contact banner (only shows when not at AHCD) -->
+    <section id="ahcdBanner" class="hidden card bg-amber-500 text-slate-900 p-6 sm:p-7">
+      <h3 class="text-lg font-semibold">Not at the Albert Hirschman Centre today</h3>
+      <p class="mt-2 text-sm">
+        If you need help, you can reach the rest of the AHCD staff at
+        <a class="underline font-medium" href="mailto:democracy.payments@graduateinstitute.ch">democracy.payments</a>,
+        <a class="underline font-medium" href="mailto:democracy.conferences@graduateinstitute.ch">democracy.conferences</a>,
+        or <a class="underline font-medium" href="mailto:democracy@graduateinstitute.ch">democracy</a>
+        <span>@graduateinstitute.ch</span>.
+      </p>
     </section>
 
-    <footer class="mt-8 text-center text-xs text-slate-500">
-      <p>This page updates automatically based on the day of the week.</p>
-    </footer>
-  </div>
+    <!-- 4) Weekly schedule (horizontal table) -->
+    <section class="card bg-emerald-600 text-white p-6 sm:p-7">
+      <h3 class="text-lg font-semibold">Weekly schedule</h3>
+      <div class="mt-4 overflow-x-auto">
+        <table class="w-full table-fixed text-sm border-separate border-spacing-y-2">
+          <thead>
+            <tr class="text-left">
+              <th class="px-3 py-2 w-28">Block</th>
+              <th class="px-3 py-2">Mon</th>
+              <th class="px-3 py-2">Tue</th>
+              <th class="px-3 py-2">Wed</th>
+              <th class="px-3 py-2">Thu</th>
+              <th class="px-3 py-2">Fri</th>
+            </tr>
+          </thead>
+          <tbody class="[&_td]:align-top">
+            <tr class="bg-emerald-700/30 rounded-xl">
+              <td class="px-3 py-3 font-medium">Morning</td>
+              <td class="px-3 py-3 td-wrap">AHCD</td>
+              <td class="px-3 py-3 td-wrap">AHCD</td>
+              <td class="px-3 py-3 td-wrap">Communications Office</td>
+              <td class="px-3 py-3 td-wrap">Communications Office</td>
+              <td class="px-3 py-3 td-wrap">AHCD</td>
+            </tr>
+            <tr class="bg-emerald-700/30 rounded-xl">
+              <td class="px-3 py-3 font-medium">Afternoon</td>
+              <td class="px-3 py-3 td-wrap">AHCD</td>
+              <td class="px-3 py-3 td-wrap">AHCD</td>
+              <td class="px-3 py-3 td-wrap">AHCD</td>
+              <td class="px-3 py-3 td-wrap">Communications Office</td>
+              <td class="px-3 py-3 td-wrap">Global Health Centre</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="mt-3 text-xs/6 opacity-90">AM: 09:00–12:30 • Lunch: 12:30–13:30 • PM: 13:30–17:30 (Europe/Zurich)</p>
+    </section>
+
+  </main>
 
   <script>
-    const schedule = {
-      1: "Albert Hirschman Centre on Democracy (AHCD)",
-      2: "Albert Hirschman Centre on Democracy (AHCD)",
-      3: { morning: "Communications Office", afternoon: "AHCD" },
-      4: "Communications Office",
-      5: { morning: "AHCD", afternoon: "Global Health Centre" }
+    // ------- Config: Weekly schedule map (Mon=1..Fri=5) -------
+    const SCHEDULE = {
+      1: { full: 'Albert Hirschman Centre on Democracy (AHCD)' },
+      2: { full: 'Albert Hirschman Centre on Democracy (AHCD)' },
+      3: { morning: 'Communications Office', afternoon: 'AHCD' },
+      4: { full: 'Communications Office' },
+      5: { morning: 'AHCD', afternoon: 'Global Health Centre' }
     };
+    const AM_START = "09:00"; const PM_START = "13:30";
+    const AM_END = 12*60 + 30, LUNCH_END = 13*60 + 30, PM_END = 17*60 + 30;
 
-    function todayInZurich() {
-      const now = new Date();
-      const fmt = new Intl.DateTimeFormat('en-GB', {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-        timeZone: 'Europe/Zurich'
-      });
-      return fmt.format(now);
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    function zfmt(opts){ return new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Zurich', ...opts }).format(new Date()); }
+    function zparts(){ const p=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Zurich',hour:'2-digit',minute:'2-digit',weekday:'long'}).formatToParts(new Date()); const o=Object.fromEntries(p.map(x=>[x.type,x.value])); return { weekday:o.weekday, hour:+o.hour, minute:+o.minute, y: new Date().getFullYear(), m: new Date().getMonth()+1, d: new Date().getDate() }; }
+    function minutesNow(){ const {hour,minute}=zparts(); return hour*60+minute; }
+    function todayIndex(){ return days.indexOf(zparts().weekday); }
+    function normalizeEntryForDay(idx){ const e=SCHEDULE[idx]; if(!e) return null; return e.full?{morning:e.full,afternoon:e.full}:{morning:e.morning,afternoon:e.afternoon}; }
+    function nextWorkdayIndex(idx){ if(idx<1||idx>5) return 1; return idx===5?1:idx+1; }
+
+    function computeState(){
+      const nowMins=minutesNow(); const idx=todayIndex(); const entry=normalizeEntryForDay(idx);
+      if(!entry){ const nextMorning=normalizeEntryForDay(1)?.morning||'—'; return {current:'Not scheduled — check email.', next:`${AM_START} — ${nextMorning}`, summary:'Weekend', atAHCD:false, note:''}; }
+      if(nowMins < AM_END) return { current: entry.morning, next: `${PM_START} — ${entry.afternoon}`, summary:`Morning — ${entry.morning} / Afternoon — ${entry.afternoon}`, atAHCD:/hirschman|ahcd/i.test(entry.morning), note:'' };
+      if(nowMins < LUNCH_END) return { current:'Lunch break', next:`${PM_START} — ${entry.afternoon}`, summary:`Morning — ${entry.morning} / Afternoon — ${entry.afternoon}`, atAHCD:false, note:'Lunch break — see “Up next” for where to find me at 13:30.' };
+      if(nowMins < PM_END){ const nextIdx=nextWorkdayIndex(idx); const nextMorning=normalizeEntryForDay(nextIdx)?.morning||'—'; return { current: entry.afternoon, next:`${AM_START} — ${nextMorning}`, summary:`Morning — ${entry.morning} / Afternoon — ${entry.afternoon}`, atAHCD:/hirschman|ahcd/i.test(entry.afternoon), note:'' }; }
+      const nextIdx=nextWorkdayIndex(idx); const nextMorning=normalizeEntryForDay(nextIdx)?.morning||'—';
+      return { current:'Day complete', next:`${AM_START} — ${nextMorning}`, summary:`Morning — ${entry.morning} / Afternoon — ${entry.afternoon}`, atAHCD:false, note:'Not working after hours — if you are in this time zone you should log off too!' };
     }
 
-    function tzAbbrev() {
-      const time = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Zurich' }).format(new Date());
-      return `Europe/Zurich — ${time}`;
+    // --- Apply override if present for today ---
+    async function fetchOverride(){
+      try {
+        const res = await fetch('overrides.json', { cache: 'no-store' });
+        if (!res.ok) return null;
+        const list = await res.json(); if (!Array.isArray(list)) return null;
+
+        // today in YYYY-MM-DD
+        const dt = new Date();
+        const yyyy = dt.getFullYear();
+        const mm = String(dt.getMonth()+1).padStart(2,'0');
+        const dd = String(dt.getDate()).padStart(2,'0');
+        const today = `${yyyy}-${mm}-${dd}`;
+
+        function inRange(item){
+          if (item.date === today) return true;
+          const r = item.date_range;
+          if (r && r.start && r.end) return today >= r.start && today <= r.end;
+          return false;
+        }
+
+        const hit = list.find(inRange);
+        return hit || null;
+      } catch { return null; }
     }
 
-    const now = new Date();
-    const day = new Intl.DateTimeFormat('en-GB', { weekday: 'long', timeZone: 'Europe/Zurich' }).format(now);
-    const weekday = now.toLocaleDateString('en-GB', { weekday: 'long', timeZone: 'Europe/Zurich' });
+    // ---- Render ----
+    document.getElementById('tinyDate').textContent =
+      `${zfmt({weekday:'long', day:'numeric', month:'long', year:'numeric'})} • ${zfmt({hour:'2-digit', minute:'2-digit'})} (Europe/Zurich)`;
 
-    let todayLoc = "";
-    if (weekday === "Monday") todayLoc = schedule[1];
-    if (weekday === "Tuesday") todayLoc = schedule[2];
-    if (weekday === "Wednesday") todayLoc = `${schedule[3].morning} (morning), ${schedule[3].afternoon} (afternoon)`;
-    if (weekday === "Thursday") todayLoc = schedule[4];
-    if (weekday === "Friday") todayLoc = `${schedule[5].morning} (morning), ${schedule[5].afternoon} (afternoon)`;
-    if (["Saturday","Sunday"].includes(weekday)) todayLoc = "Not scheduled — check email.";
+    (async function init(){
+      let state = computeState();
+      const override = await fetchOverride();
 
-    document.getElementById('todayText').textContent = todayInZurich();
-    document.getElementById('tzText').textContent = tzAbbrev();
-    document.getElementById('locationText').textContent = todayLoc;
+      // If override exists, replace fields and show sticker
+      if (override){
+        if (override.location) state.current = override.location;
+        if (override.upNext)   state.next    = override.upNext;
+        if (override.note)     state.note    = override.note;
+        // Make sticker visible
+        const s = document.getElementById('overrideSticker');
+        s.textContent = override.badgeText || 'OVERRIDE';
+        s.classList.remove('hidden');
+      }
 
-    const atAHCD = /hirschman|ahcd/i.test(todayLoc);
-    if (!atAHCD) {
-      document.getElementById('ahcdBanner').classList.remove('hidden');
-      document.getElementById('statusDot').classList.replace('bg-blue-500', 'bg-amber-500');
-    }
+      document.getElementById('rightNow').textContent = state.current;
+      document.getElementById('upNext').textContent   = state.next;
+      document.getElementById('daySummary').textContent = state.summary;
+
+      // Friendly note (only if set)
+      const noteEl = document.getElementById('friendlyNote');
+      if (state.note) { noteEl.textContent = state.note; noteEl.classList.remove('hidden'); }
+
+      // AHCD banner + status dot color
+      if (!state.atAHCD) {
+        document.getElementById('ahcdBanner').classList.remove('hidden');
+        const dot = document.getElementById('statusDot');
+        dot.classList.remove('bg-emerald-400');
+        dot.classList.add('bg-amber-300');
+      }
+    })();
   </script>
 </body>
 </html>
