@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Toggle: In Office / WFH</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+</style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 grid place-items-center p-6">
+  <main class="w-full max-w-md">
+    <div class="rounded-2xl bg-white shadow-md ring-1 ring-black/5 p-6">
+      <h1 class="text-xl font-semibold">Work mode</h1>
+      <p id="status" class="mt-1 text-sm text-slate-600">—</p>
+
+      <button id="toggleBtn"
+        class="mt-4 w-full rounded-xl px-4 py-3 text-base font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition">
+        Toggle to “In office” (until 17:30)
+      </button>
+
+      <div class="mt-3 grid grid-cols-2 gap-3">
+        <button id="forceOffice"
+          class="rounded-xl px-4 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition">
+          Set In office
+        </button>
+        <button id="forceWFH"
+          class="rounded-xl px-4 py-2 text-sm font-semibold text-white bg-slate-700 hover:bg-slate-800 transition">
+          Set WFH
+        </button>
+      </div>
+
+      <p id="countdown" class="mt-3 text-xs text-slate-500"></p>
+
+      <a href="./" class="mt-6 inline-flex items-center justify-center w-full rounded-xl px-4 py-2 text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition">
+        Back to status page
+      </a>
+    </div>
+
+    <p class="mt-4 text-center text-xs text-slate-500">
+      Tip: you can call this with <code>?action=office</code> or <code>?action=wfh</code> for one-tap NFC.
+    </p>
+  </main>
+
+<script>
+  // ---- Config ----
+  const KEY = 'michelle_in_office_flag'; // shared with main page
+
+  // Get Zurich time parts
+  function zParts() {
+    const p = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Zurich',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit'
+    }).formatToParts(new Date());
+    const m = Object.fromEntries(p.map(x => [x.type, x.value]));
+    return { y:+m.year, mo:+m.month, d:+m.day, h:+m.hour, mi:+m.minute };
+  }
+
+  // Return ms until today 17:30 in Zurich (0 if past)
+  function msUntil1730Today() {
+    const {h, mi} = (function(){ const t=zParts(); return {h:t.h, mi:t.mi}; })();
+    const nowMins = h*60 + mi;
+    const target = 17*60 + 30;
+    const deltaMins = Math.max(0, target - nowMins);
+    return deltaMins * 60_000;
+  }
+
+  function setOffice(on) {
+    if (on) {
+      const expires = Date.now() + msUntil1730Today();
+      localStorage.setItem(KEY, JSON.stringify({ on:true, expires }));
+    } else {
+      localStorage.removeItem(KEY);
+    }
+    render();
+  }
+
+  function readOffice() {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return { on:false, expires:null };
+    try {
+      const obj = JSON.parse(raw);
+      if (!obj?.on) return { on:false, expires:null };
+      if (typeof obj.expires === 'number' && Date.now() > obj.expires) {
+        localStorage.removeItem(KEY);
+        return { on:false, expires:null };
+      }
+      return { on:true, expires:obj.expires };
+    } catch { return { on:false, expires:null }; }
+  }
+
+  function render() {
+    const { on, expires } = readOffice();
+    const status = document.getElementById('status');
+    const btn = document.getElementById('toggleBtn');
+    const cd = document.getElementById('countdown');
+
+    status.textContent = on
+      ? 'Current: In office (green dot on main page)'
+      : 'Current: Working from home (amber dot on main page)';
+
+    btn.textContent = on
+      ? 'Toggle to “WFH” (clear now)'
+      : 'Toggle to “In office” (until 17:30)';
+
+    if (on && expires) {
+      updateCountdown(); // draw immediately
+      cd.dataset.expires = String(expires);
+      cd.classList.remove('hidden');
+    } else {
+      cd.textContent = '';
+      cd.removeAttribute('data-expires');
+      cd.classList.add('hidden');
+    }
+  }
+
+  function updateCountdown() {
+    const cd = document.getElementById('countdown');
+    const exp = +cd.dataset.expires || 0;
+    if (!exp) return;
+    const ms = Math.max(0, exp - Date.now());
+    const mins = Math.floor(ms/60000), secs = Math.floor((ms%60000)/1000);
+    cd.textContent = `Auto-resets at 17:30 (Europe/Zurich) — ${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')} remaining`;
+    if (ms === 0) { render(); }
+  }
+
+  // Wire up buttons
+  document.getElementById('toggleBtn').addEventListener('click', () => {
+    const { on } = readOffice();
+    if (on) setOffice(false); else setOffice(true);
+  });
+  document.getElementById('forceOffice').addEventListener('click', () => setOffice(true));
+  document.getElementById('forceWFH').addEventListener('click', () => setOffice(false));
+
+  // Handle NFC/quick links: ?action=office | ?action=wfh
+  (function handleActionParam(){
+    const q = new URLSearchParams(location.search);
+    const action = q.get('action');
+    if (action === 'office') setOffice(true);
+    if (action === 'wfh') setOffice(false);
+  })();
+
+  // Initial render + countdown ticker
+  render();
+  setInterval(updateCountdown, 1000);
+</script>
+</body>
+</html>
