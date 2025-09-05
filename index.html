@@ -30,15 +30,34 @@
 <body class="bg-white text-slate-900 antialiased">
   <main class="mx-auto max-w-5xl p-6 sm:p-10 space-y-6">
 
-    <!-- 1) Title + time -->
-    <section class="card bg-blue-600 text-white p-6 sm:p-7">
-      <div class="flex items-start justify-between gap-4">
-        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
-          </span> Where is Michelle working right now?
-        </h1>
-        <span id="statusDot" class="relative inline-block h-3 w-3 rounded-full bg-emerald-400 status-ping"></span>
+    <!-- Header row: Blue title (span 2) + Purple status card -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <!-- Title + time -->
+      <div class="card bg-blue-600 text-white p-6 sm:p-7 md:col-span-2">
+        <div class="flex items-start justify-between gap-4">
+          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+            📍 Where is Michelle working right now?
+          </h1>
+          <span id="statusDot" class="relative inline-block h-3 w-3 rounded-full bg-emerald-400 status-ping"></span>
+        </div>
+        <p id="tinyDate" class="mt-2 text-sm/6 opacity-90"></p>
       </div>
-      <p id="tinyDate" class="mt-2 text-sm/6 opacity-90"></p>
+
+      <!-- NEW: In-office / Where in the building (manual toggle driven) -->
+      <div class="card bg-fuchsia-600 text-white p-6 sm:p-7">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">Work mode</h2>
+          <span id="headerModeDot" class="relative inline-block h-3 w-3 rounded-full bg-amber-400">
+            <span class="absolute inset-0 rounded-full animate-ping bg-amber-400/60"></span>
+          </span>
+        </div>
+        <p id="headerModeText" class="mt-2 text-base font-bold">—</p>
+
+        <div class="mt-4 pt-4 border-t border-white/25">
+          <p class="text-sm/6 opacity-90">Where in the building</p>
+          <p id="headerRoomText" class="mt-1 text-sm font-medium">—</p>
+        </div>
+      </div>
     </section>
 
     <!-- 2) Right now + Up next -->
@@ -101,6 +120,23 @@
   </main>
 
   <script>
+    // ===== Manual "In office" flag (set by toggle.html) =====
+    const OFFICE_KEY = 'michelle_in_office_flag'; // { on: true, expires: <ms> }
+
+    function readOffice() {
+      const raw = localStorage.getItem(OFFICE_KEY);
+      if (!raw) return false;
+      try {
+        const obj = JSON.parse(raw);
+        if (!obj?.on) return false;
+        if (typeof obj.expires === 'number' && Date.now() > obj.expires) {
+          localStorage.removeItem(OFFICE_KEY);
+          return false;
+        }
+        return true;
+      } catch { return false; }
+    }
+
     // ------- Rota (Mon=1..Fri=5) -------
     const SCHEDULE = {
       1: { full: 'Democracy Centre (AHCD)' },
@@ -128,7 +164,7 @@
     function normalizeEntryForWeekday(wIdx){ const e=SCHEDULE[wIdx]; if(!e) return null; return e.full?{morning:e.full, afternoon:e.full}:{morning:e.morning, afternoon:e.afternoon}; }
     function nextWorkdayIndex(wIdx){ if(wIdx<1||wIdx>5) return 1; return wIdx===5?1:wIdx+1; }
 
-    // ---- TODAY card logic (same as before) ----
+    // ---- TODAY card logic ----
     function computeTodayCard(){
       const nowMins=minutesNow(); const idx=todayIdx(); const entry=normalizeEntryForWeekday(idx);
       if(!entry){
@@ -144,12 +180,10 @@
 
     // ---- Week window with ROLLING columns ----
     function startOfMonday(date){
-      // get Monday of the week for 'date' (using local Europe/Zurich notion)
       const d = new Date(date);
-      // Normalize to local day index
-      const idx = todayIdx(); // 0..6
+      const idx = todayIdx();
       const todayLocal = new Date();
-      const deltaToMon = ((idx+6)%7); // 0 if Monday, 6 if Sunday
+      const deltaToMon = ((idx+6)%7);
       const mon = new Date(todayLocal);
       mon.setDate(todayLocal.getDate() - deltaToMon);
       mon.setHours(0,0,0,0);
@@ -160,12 +194,11 @@
     function labelDay(date){ return new Intl.DateTimeFormat('en-GB', { day:'2-digit', month:'short' }).format(date); }
 
     function shouldColumnRollToNextWeek(columnWeekday, nowWeekday, nowMins){
-      // columnWeekday: 1..5 (Mon..Fri) ; nowWeekday: 0..6
-      if (nowWeekday===6 || nowWeekday===0) return true; // weekend -> whole table next week
-      const nowW = nowWeekday;           // 1..5 on Mon..Fri
-      const colW = columnWeekday;        // 1..5
-      if (colW < nowW) return true;      // past day -> roll
-      if (colW === nowW && nowMins >= PM_END) return true; // today after 17:30 -> roll today's column too
+      if (nowWeekday===6 || nowWeekday===0) return true;
+      const nowW = nowWeekday;
+      const colW = columnWeekday;
+      if (colW < nowW) return true;
+      if (colW === nowW && nowMins >= PM_END) return true;
       return false;
     }
 
@@ -199,6 +232,14 @@
       return null;
     }
 
+    // ---- Map current location to a room label ----
+    function mapRoomFromLocation(loc){
+      const s = (loc || '').toLowerCase();
+      if (/communications/.test(s)) return '8th floor';
+      if (/hirschman|ahcd/.test(s)) return 'P1-457';
+      return '—';
+    }
+
     // ---- Render ----
     document.getElementById('tinyDate').textContent =
       `${zfmt({weekday:'long', day:'numeric', month:'long', year:'numeric'})} • ${zfmt({hour:'2-digit', minute:'2-digit'})} (Europe/Zurich)`;
@@ -230,19 +271,16 @@
       const thisMonday = startOfMonday(new Date());
       const nextMonday = addDays(thisMonday, 7);
 
-      // Build 5 column dates with rolling rule
       const columnDates = [];
-      for (let col=1; col<=5; col++){ // Mon..Fri
+      for (let col=1; col<=5; col++){
         const roll = shouldColumnRollToNextWeek(col, nowWIdx===0?7:nowWIdx, nowMins);
         const base = roll ? nextMonday : thisMonday;
         columnDates.push( addDays(base, col-1) );
       }
 
-      // Week label = span of shown columns
       const weekLabel = `${labelDay(columnDates[0])} → ${labelDay(columnDates[4])}`;
       document.getElementById('weekLabel').textContent = `Showing: ${weekLabel}`;
 
-      // Headers
       const theadRow = document.getElementById('theadRow');
       ['Mon','Tue','Wed','Thu','Fri'].forEach((name,i)=>{
         const th = document.createElement('th');
@@ -251,7 +289,6 @@
         theadRow.appendChild(th);
       });
 
-      // Fill cells
       const rowM = document.getElementById('rowMorning');
       const rowA = document.getElementById('rowAfternoon');
 
@@ -262,7 +299,6 @@
         const rota = normalizeEntryForWeekday(weekdayNumber);
         const over = findOverrideForDate(ovMap, iso);
 
-        // Morning cell
         const tdM = document.createElement('td');
         tdM.className = "px-3 py-3 td-wrap cell";
         tdM.textContent = rota?.morning || '—';
@@ -271,7 +307,6 @@
         }
         rowM.appendChild(tdM);
 
-        // Afternoon cell
         const tdA = document.createElement('td');
         tdA.className = "px-3 py-3 td-wrap cell";
         tdA.textContent = rota?.afternoon || '—';
@@ -281,28 +316,33 @@
         rowA.appendChild(tdA);
       }
 
-      // Highlight the specific active block for "today" column if it's within current (non-rolled) column
-      // Determine which column corresponds to "today" if it wasn't rolled
+      // Highlight active block (if today’s column not rolled)
       const todayColIndex = (() => {
-        // Map Mon..Fri (1..5) to 0..4 index based on today's weekday (only if not rolled)
-        const w = (nowWIdx===0||nowWIdx===6) ? null : (nowWIdx-1); // Mon=0..Fri=4
+        const w = (nowWIdx===0||nowWIdx===6) ? null : (nowWIdx-1);
         if (w===null) return null;
-        // If that column was rolled (because time > 17:30), we don't highlight
         const rolled = shouldColumnRollToNextWeek(nowWIdx, nowWIdx, nowMins);
         if (rolled) return null;
         return w;
       })();
-
       if (todayColIndex !== null){
-        if (nowMins < AM_END) {
-          // highlight morning cell
-          rowM.children[todayColIndex+1 /* offset for row label cell */].classList.add('active-block');
-        } else if (nowMins >= LUNCH_END && nowMins < PM_END) {
-          // highlight afternoon cell
-          rowA.children[todayColIndex+1].classList.add('active-block');
-        }
-        // During lunch, no highlight by design
+        if (nowMins < AM_END) rowM.children[todayColIndex+1].classList.add('active-block');
+        else if (nowMins >= LUNCH_END && nowMins < PM_END) rowA.children[todayColIndex+1].classList.add('active-block');
       }
+
+      // ===== NEW: Fill the purple header status card =====
+      const inOffice = readOffice(); // manual flag only
+      const headerDot = document.getElementById('headerModeDot');
+      const headerText = document.getElementById('headerModeText');
+      const roomText = document.getElementById('headerRoomText');
+
+      headerText.textContent = inOffice ? 'In office' : 'Working from home';
+      headerDot.className = "relative inline-block h-3 w-3 rounded-full " + (inOffice ? "bg-emerald-400" : "bg-amber-400");
+      headerDot.innerHTML = `<span class="absolute inset-0 rounded-full animate-ping ${inOffice ? 'bg-emerald-400/60' : 'bg-amber-400/60'}"></span>`;
+
+      // Room: override via URL (?room=...), else map from current location
+      const urlRoom = new URLSearchParams(location.search).get('room');
+      const mappedRoom = mapRoomFromLocation(state.current);
+      roomText.textContent = urlRoom ? decodeURIComponent(urlRoom) : mappedRoom;
 
     })();
   </script>
