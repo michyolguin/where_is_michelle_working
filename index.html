@@ -329,21 +329,33 @@
         else if (nowMins >= LUNCH_END && nowMins < PM_END) rowA.children[todayColIndex+1].classList.add('active-block');
       }
 
-      // ===== NEW: Fill the purple header status card =====
-      const inOffice = readOffice(); // manual flag only
+            // ===== NEW: Fill the purple header status card =====
+           // ===== Updated: Automatic "Work mode" card based on schedule =====
       const headerDot = document.getElementById('headerModeDot');
       const headerText = document.getElementById('headerModeText');
       const roomText = document.getElementById('headerRoomText');
-
-      headerText.textContent = inOffice ? 'In office' : 'Working from home';
-      headerDot.className = "relative inline-block h-3 w-3 rounded-full " + (inOffice ? "bg-emerald-400" : "bg-amber-400");
-      headerDot.innerHTML = `<span class="absolute inset-0 rounded-full animate-ping ${inOffice ? 'bg-emerald-400/60' : 'bg-amber-400/60'}"></span>`;
-
-      // Room: override via URL (?room=...), else map from current location
+      
+      // Determine if today is WFH based on schedule
+      const todayIsWFH =
+        /home|remote/i.test(state.current) || /home|remote/i.test(state.summary);
+      
+      // Manual override still applies (for ad‑hoc office switches)
+      const manualOfficeFlag = readOffice();
+      const isInOffice = manualOfficeFlag || !todayIsWFH;
+      
+      // Update text + indicator color
+      headerText.textContent = isInOffice ? 'In office' : 'Working from home';
+      headerDot.className =
+        "relative inline-block h-3 w-3 rounded-full " +
+        (isInOffice ? "bg-emerald-400" : "bg-amber-400");
+      headerDot.innerHTML = `<span class="absolute inset-0 rounded-full animate-ping ${
+        isInOffice ? 'bg-emerald-400/60' : 'bg-amber-400/60'
+      }"></span>`;
+      
+      // Room display (skip if WFH)
       const urlRoom = new URLSearchParams(location.search).get('room');
-      const mappedRoom = mapRoomFromLocation(state.current);
+      let mappedRoom = isInOffice ? mapRoomFromLocation(state.current) : '—';
       roomText.textContent = urlRoom ? decodeURIComponent(urlRoom) : mappedRoom;
-
     })();
   </script>
 </body>
