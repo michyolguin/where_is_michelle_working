@@ -8,8 +8,8 @@
   },
   {
     "date_range": { "start": "2026-01-01", "end": "2026-10-15" },
-    "location": "out of offie",
+    "location": "out of office",
     "note": "Email response may be delayed",
-    "badgeText": "Democracy Week"
+    "badgeText": "Out of office"
   }
 ]
