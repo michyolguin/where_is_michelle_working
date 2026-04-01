@@ -7,9 +7,9 @@
     "badgeText": "Comms"
   },
   {
-    "date_range": { "start": "2026-02-18", "end": "2026-02-20" },
-    "location": "out of office",
-    "note": "Email response may be delayed",
+    "date_range": { "start": "2026-04-03", "end": "2026-04-7" },
+    "location": "Easter break",
+    "note": "Email response will be delayed",
     "badgeText": "Out of office"
   }
 ]
