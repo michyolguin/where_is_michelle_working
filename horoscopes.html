@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Floor Horoscopes</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&display=swap');
+
+  :root{
+    --page-bg:#f2f3f5;
+    --text-dark:#1c2230;
+    --muted:#6b7280;
+    --blue:#3d66e3;
+    --orange:#e8821e;
+    --red:#dc3b36;
+    --green:#159163;
+    --gold:#f2a729;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:var(--page-bg);
+    display:flex;
+    justify-content:center;
+    font-family:'Poppins',-apple-system,sans-serif;
+    padding:32px 16px;
+  }
+  .wrap{ width:100%; max-width:460px; }
+
+  .block{
+    border-radius:22px;
+    padding:24px 26px;
+    box-shadow:0 10px 24px rgba(20,20,30,0.08);
+    margin-bottom:14px;
+    position:relative;
+    color:#fff;
+  }
+  .blue{ background:var(--blue); }
+  .orange{ background:var(--orange); }
+  .red{ background:var(--red); }
+  .green{ background:var(--green); }
+  .gold{ background:var(--gold); }
+
+  .dot{
+    position:absolute;
+    top:20px; right:20px;
+    width:22px; height:22px;
+    border:2px solid rgba(255,255,255,0.5);
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .dot::after{
+    content:'';
+    width:8px; height:8px;
+    border-radius:50%;
+    background:var(--gold);
+  }
+
+  .hero-title{
+    font-weight:800;
+    font-size:1.55rem;
+    line-height:1.25;
+  }
+
+  .floor-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:14px;
+  }
+  .fpill{
+    font-family:'Poppins',sans-serif;
+    font-weight:600;
+    font-size:0.8rem;
+    padding:9px 14px;
+    border-radius:100px;
+    border:2px solid transparent;
+    background:#fff;
+    cursor:pointer;
+  }
+
+  .fname{
+    font-weight:800;
+    font-size:1.3rem;
+    margin-bottom:4px;
+  }
+  .mood{
+    font-weight:600;
+    font-size:0.8rem;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    opacity:0.85;
+    margin-bottom:16px;
+  }
+  .prediction{
+    font-weight:500;
+    font-size:1.02rem;
+    line-height:1.5;
+    margin-bottom:20px;
+  }
+
+  .energy{
+    display:flex;
+    align-items:center;
+    gap:5px;
+    margin-bottom:18px;
+  }
+  .energy-label{
+    font-size:0.7rem;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    opacity:0.75;
+    margin-right:6px;
+  }
+  .bar{
+    width:16px; height:16px;
+    border:1.5px solid rgba(255,255,255,0.5);
+    border-radius:4px;
+  }
+  .bar.on{ background:#fff; border-color:#fff; }
+
+  .chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:18px;
+  }
+  .chip{
+    background:rgba(255,255,255,0.18);
+    border-radius:100px;
+    font-size:0.78rem;
+    font-weight:600;
+    padding:7px 13px;
+  }
+  .chip .label{ opacity:0.75; font-weight:600; margin-right:5px; }
+
+  .sync{
+    font-size:0.82rem;
+    font-weight:500;
+    border-top:1px solid rgba(255,255,255,0.25);
+    padding-top:14px;
+    opacity:0.95;
+  }
+  .sync b{ font-weight:700; }
+
+  .note{
+    color:var(--muted);
+    font-size:0.7rem;
+    text-align:center;
+    margin-top:10px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="block blue">
+    <div class="dot"></div>
+    <div class="hero-title">Floor Horoscopes</div>
+  </div>
+
+  <div class="floor-row" id="floorRow"></div>
+  <div class="block" id="card"></div>
+
+  <div class="note">new forecast at midnight — nothing saved, nothing tracked</div>
+</div>
+
+<script>
+(function(){
+  // ---- Floors: edit here. Colors cycle blue / orange / red / green / gold ----
+  const FLOORS = ["4th Floor","The Fab","8th Floor","Ground Floor"];
+  const COLORS = ["blue","orange","red","green","gold"];
+
+  // ---- Content banks — edit freely, add your own in-jokes ----
+  const MOODS = [
+    "quietly chaotic","surprisingly productive","sleepy","gossip-heavy",
+    "eerily quiet","main character","low-key unhinged","coffee-deprived",
+    "printer-jam energy","one Webex crash from chaos","blessed",
+    "off its axis","vibing","spiraling gently","weirdly wholesome",
+    "suspiciously well-stocked","running on fumes","quietly thriving"
+  ];
+
+  const PREDICTIONS = [
+    "the blinds will stay down all day, then come back up for a second, then back down.",
+    "the coffee machine will run empty by mid-morning.",
+    "a mouse will mysteriously stop working right when you need it.",
+    "someone will microwave something ambitious in the kitchen.",
+    "the good couch will be taken the one time you need it.",
+    "a Webex call will start exactly four minutes late.",
+    "someone will ask 'can everyone see my screen?'",
+    "the printer will jam on page one of a twelve-page document.",
+    "a stapler will vanish without a trace.",
+    "half the floor will be too warm, the other half too cold, and no one will agree.",
+    "the plant will look one day closer to giving up.",
+    "an unclaimed jacket will still be on the back of a chair by evening.",
+    "the Webex link will not be the one from the invite.",
+    "a chair will roll into the hallway and just stay there.",
+    "the light in the corner will flicker just a little.",
+    "the recycling bin will somehow already be full.",
+    "a badge won't scan on the first try.",
+    "the good pens will all be missing.",
+    "someone will ask if there's decaf. there is not.",
+    "the elevator will stop on every floor except this one.",
+    "a post-it will fall off the wall.",
+    "the fridge will have exactly one mystery container nobody claims."
+  ];
+
+  const WARNINGS = [
+    "the meeting that runs long","the elevator button that doesn't light up",
+    "the squeaky chair","the lukewarm coffee","an unscheduled fire drill",
+    "the empty stapler","someone's speakerphone call","the Webex call with no agenda",
+    "the blinds that won't budge","the flickering light",
+    "the mystery container in the fridge","the printer on its last legs"
+  ];
+
+  const LUCKY = [
+    "a pen that actually works","an open parking spot","a fresh notepad",
+    "the good stapler","a working elevator button","an unclaimed snack",
+    "a quiet corner desk","headphones with charge left","a full water bottle",
+    "a window seat","a mouse that still works","the salle de repos, empty",
+    "blinds that actually go up","a Webex call that starts on time"
+  ];
+
+  // ---- deterministic daily seed ----
+  function xmur3(str){
+    let h = 1779033703 ^ str.length;
+    for (let i=0; i<str.length; i++){
+      h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+      h = (h << 13) | (h >>> 19);
+    }
+    return function(){
+      h = Math.imul(h ^ (h >>> 16), 2246822507);
+      h = Math.imul(h ^ (h >>> 13), 3266489909);
+      h ^= h >>> 16;
+      return h >>> 0;
+    };
+  }
+  function mulberry32(a){
+    return function(){
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function rngFor(seedStr){ return mulberry32(xmur3(seedStr)()); }
+  function pick(rng, arr){ return arr[Math.floor(rng()*arr.length)]; }
+
+  const now = new Date();
+  const dateStr = now.getFullYear()+'-'+(now.getMonth()+1)+'-'+now.getDate();
+
+  function colorFor(floorName){
+    return COLORS[FLOORS.indexOf(floorName) % COLORS.length];
+  }
+
+  function horoscopeFor(floorName){
+    const rng = rngFor(dateStr+'|'+floorName);
+    const mood = pick(rng, MOODS);
+    const prediction = pick(rng, PREDICTIONS);
+    const warning = pick(rng, WARNINGS);
+    const lucky = pick(rng, LUCKY);
+    const energy = 1 + Math.floor(rng()*5);
+    let syncFloor;
+    do { syncFloor = pick(rng, FLOORS); } while (syncFloor === floorName && FLOORS.length > 1);
+    return {mood, prediction, warning, lucky, energy, syncFloor};
+  }
+
+  const floorRow = document.getElementById('floorRow');
+  const card = document.getElementById('card');
+  let active = FLOORS[0];
+
+  FLOORS.forEach(name=>{
+    const btn = document.createElement('button');
+    const color = colorFor(name);
+    btn.className = 'fpill';
+    btn.textContent = name;
+    btn.dataset.name = name;
+    styleButton(btn, name, color);
+    btn.addEventListener('click', ()=> selectFloor(name));
+    floorRow.appendChild(btn);
+  });
+
+  function styleButton(btn, name, color){
+    const varColor = getComputedStyle(document.documentElement).getPropertyValue('--'+color).trim();
+    if (name === active){
+      btn.style.background = varColor;
+      btn.style.color = '#fff';
+      btn.style.borderColor = varColor;
+    } else {
+      btn.style.background = '#fff';
+      btn.style.color = varColor;
+      btn.style.borderColor = varColor;
+    }
+  }
+
+  function selectFloor(name){
+    active = name;
+    [...floorRow.children].forEach(b=> styleButton(b, b.dataset.name, colorFor(b.dataset.name)));
+    render(name);
+  }
+
+  function render(name){
+    const h = horoscopeFor(name);
+    const color = colorFor(name);
+    card.className = 'block ' + color;
+    const bars = Array.from({length:5}, (_,i)=>
+      '<span class="bar' + (i < h.energy ? ' on' : '') + '"></span>'
+    ).join('');
+
+    card.innerHTML =
+      '<div class="fname">' + name + '</div>' +
+      '<div class="mood">' + h.mood + '</div>' +
+      '<div class="prediction">' + name + ': ' + h.prediction + '</div>' +
+      '<div class="energy"><span class="energy-label">Energy</span>' + bars + '</div>' +
+      '<div class="chips">' +
+        '<span class="chip"><span class="label">Lucky</span>' + h.lucky + '</span>' +
+        '<span class="chip"><span class="label">Avoid</span>' + h.warning + '</span>' +
+      '</div>' +
+      '<div class="sync">Syncs well today with <b>' + h.syncFloor + '</b></div>';
+  }
+
+  render(active);
+})();
+</script>
+</body>
+</html>
